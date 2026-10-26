@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 生图工具</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel2: #1e222b;
+    --border: #2a2f3a;
+    --text: #e8eaf0;
+    --muted: #8b93a3;
+    --accent: #6c8cff;
+    --accent2: #8f6cff;
+    --danger: #ff6c6c;
+    --radius: 12px;
+  }
+  /* ---- 皮肤：只换配色变量，版式不变 ---- */
+  body[data-skin="slate"] { --bg:#101418; --panel:#161b21; --panel2:#1d232b; --border:#2b333d; --text:#e6ebf1; --muted:#8a96a6; --accent:#4ec9b0; --accent2:#3aa7ff; }
+  body[data-skin="ocean"] { --bg:#0a1320; --panel:#0f1c2e; --panel2:#15263c; --border:#20364f; --text:#e3edf8; --muted:#7f96b0; --accent:#38bdf8; --accent2:#22d3ee; }
+  body[data-skin="plum"]  { --bg:#12101a; --panel:#1a1726; --panel2:#221d33; --border:#332b48; --text:#ece8f6; --muted:#9a8fb4; --accent:#c084fc; --accent2:#f472b6; }
+  body[data-skin="mocha"] { --bg:#141110; --panel:#1d1917; --panel2:#262120; --border:#39312d; --text:#f0e9e3; --muted:#a2948a; --accent:#e0a458; --accent2:#c97b5a; }
+  body[data-skin="light"] { --bg:#f4f6f9; --panel:#ffffff; --panel2:#f1f4f8; --border:#dde3ea; --text:#1f2632; --muted:#6b7686; --accent:#2f6df0; --accent2:#00a3a3; }
+  body[data-skin="light"] .ref-thumb .rm { background: rgba(0,0,0,.45); }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;  /* 防止长内容把页面撑出横向滚动，挡住侧栏 */
+  }
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 380px; flex-shrink: 0; padding: 24px;
+    background: var(--panel); border-right: 1px solid var(--border);
+    overflow-y: auto; height: 100vh; position: sticky; top: 0;
+  }
+  .main { flex: 1; padding: 24px; min-width: 0; }
+  .head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .head .txt { min-width: 0; }
+  .skin-sel { width: auto !important; padding: 6px 8px !important; font-size: 12px !important; margin-left: auto; }
+  h1 { font-size: 19px; margin-bottom: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub { color: var(--muted); font-size: 12px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+  textarea, input[type=text], input[type=password], input[type=number], select {
+    width: 100%; background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 14px;
+    outline: none; transition: border-color .15s;
+  }
+  textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 90px; font-family: inherit; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 6px; }
+  .preset-btn {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 8px; padding: 7px 4px; font-size: 12px; cursor: pointer;
+    text-align: center; transition: all .15s;
+  }
+  .preset-btn:hover { border-color: var(--accent); color: var(--text); }
+  .preset-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(108,140,255,.08); }
+  .preset-btn small { display: block; font-size: 10px; opacity: .7; }
+  .ratio-box {
+    margin-top: 10px; display: flex; align-items: center; justify-content: center;
+    background: var(--panel2); border: 1px dashed var(--border); border-radius: 8px;
+    height: 90px;
+  }
+  .ratio-preview { background: linear-gradient(135deg, rgba(108,140,255,.35), rgba(143,108,255,.35));
+    border: 1px solid var(--accent); border-radius: 4px; }
+  .ref-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .ref-thumb {
+    position: relative; width: 64px; height: 64px; border-radius: 8px;
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  .ref-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ref-thumb .rm {
+    position: absolute; top: 2px; right: 2px; width: 18px; height: 18px;
+    border-radius: 50%; border: none; background: rgba(0,0,0,.65); color: #fff;
+    font-size: 11px; line-height: 18px; text-align: center; cursor: pointer; padding: 0;
+  }
+  .ref-add {
+    width: 64px; height: 64px; border-radius: 8px; border: 1px dashed var(--border);
+    background: var(--panel2); color: var(--muted); font-size: 12px; cursor: pointer;
+    transition: all .15s;
+  }
+  .ref-add:hover { border-color: var(--accent); color: var(--accent); }
+  .gen-btn {
+    width: 100%; margin-top: 20px; padding: 13px; border: none; border-radius: 10px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: opacity .15s, transform .1s;
+  }
+  .gen-btn:hover { opacity: .9; }
+  .gen-btn:active { transform: scale(.98); }
+  .gen-btn:disabled { opacity: .5; cursor: not-allowed; }
+  details {
+    margin-top: 18px; border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; background: var(--panel2);
+  }
+  summary { cursor: pointer; font-size: 13px; color: var(--muted); user-select: none; }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .hint a { color: var(--accent); }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; animation: fadeIn .3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } }
+  .card img { width: 100%; display: block; cursor: zoom-in; }
+  .card .meta { padding: 10px 12px; font-size: 12px; color: var(--muted); }
+  .card .meta .prompt-text {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; margin-bottom: 8px; color: var(--text);
+  }
+  .card .actions { display: flex; gap: 8px; }
+  .card .actions button, .card .actions a {
+    flex: 1; text-align: center; font-size: 12px; padding: 6px; border-radius: 6px;
+    background: var(--panel2); border: 1px solid var(--border); color: var(--muted);
+    cursor: pointer; text-decoration: none; transition: all .15s;
+  }
+  .card .actions button:hover, .card .actions a:hover { border-color: var(--accent); color: var(--text); }
+  .empty {
+    color: var(--muted); text-align: center; margin-top: 120px; font-size: 14px; line-height: 2;
+  }
+  .empty .big { font-size: 40px; }
+  .status { margin-bottom: 16px; font-size: 13px; color: var(--muted); min-height: 20px; overflow-wrap: anywhere; }
+  .status.error { color: var(--danger); white-space: pre-wrap; }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite;
+    vertical-align: -2px; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .lightbox {
+    position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none;
+    align-items: center; justify-content: center; z-index: 100; cursor: zoom-out;
+  }
+  .lightbox.show { display: flex; }
+  .lightbox img { max-width: 95vw; max-height: 95vh; border-radius: 8px; }
+  @media (max-width: 800px) {
+    .layout { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: static; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="head">
+      <div class="txt">
+        <h1>AI 生图工具</h1>
+        <div class="sub">自定义尺寸 · 多模型 · 网页版</div>
+      </div>
+      <select id="skin" class="skin-sel" title="换个皮肤">
+        <option value="dark">午夜黑</option>
+        <option value="slate">石墨青</option>
+        <option value="ocean">深海蓝</option>
+        <option value="plum">暗夜紫</option>
+        <option value="mocha">摩卡棕</option>
+        <option value="light">浅色</option>
+      </select>
+    </div>
+
+    <label>提示词 Prompt</label>
+    <textarea id="prompt" placeholder="描述你想生成的画面，例如：一只橘猫戴着宇航员头盔漂浮在太空中，赛博朋克风格，霓虹光效，超高清细节"></textarea>
+
+    <details class="tx-box">
+      <summary>🗂 批量提示词（一行一个，并行出图）</summary>
+      <textarea id="batch_prompts" rows="5" placeholder="一行一个提示词，例如：&#10;猫咪绝育促销图，蓝绿渐变，扁平插画&#10;狗狗体检套餐图，暖橙色，写实照片风"></textarea>
+      <div class="hint">填了这里就用这些提示词并行出图（上面的提示词框会被忽略）；每个提示词各出「张数」张，最多同时跑 4 个请求。</div>
+    </details>
+
+    <details class="tx-box">
+      <summary>✍️ 文案 / 提示词助手</summary>
+      <label>要处理的文字（留空则用上面的提示词）</label>
+      <textarea id="tx_in" rows="3" placeholder="写一句大概的想法，例如：给宠物医院做一张猫咪绝育的促销图"></textarea>
+      <label>做什么</label>
+      <select id="tx_task">
+        <option value="prompt_cn">把想法写成中文生图提示词（细化画面、光线、构图）</option>
+        <option value="prompt_en">写成英文生图提示词（英文模型出图更准）</option>
+        <option value="polish">润色扩写（让文字更好、更有细节）</option>
+        <option value="short">提炼成短标题 / 卖点（每行一条）</option>
+        <option value="rednote">写成小红书风格文案</option>
+        <option value="custom">自定义要求（写在下面）</option>
+      </select>
+      <textarea id="tx_custom" rows="2" placeholder="自定义要求，例如：改成 5 条团单标题，每条不超过 10 个字" style="display:none"></textarea>
+      <label>文案模型</label>
+      <select id="tx_provider"></select>
+      <select id="tx_model_sel" style="margin-top:6px"></select>
+      <input type="text" id="tx_model" placeholder="自定义模型名" style="margin-top:6px;display:none">
+      <label>文案模型的 API Key（仅存于本机浏览器）</label>
+      <input type="password" id="tx_key" placeholder="sk-...">
+      <div class="hint" id="tx_hint"></div>
+      <button class="gen-btn" id="tx_run" style="margin-top:10px">✍️ 生成文案</button>
+      <textarea id="tx_out" rows="6" placeholder="结果会显示在这里" style="margin-top:10px"></textarea>
+      <div class="row" style="margin-top:6px">
+        <button id="tx_use">↑ 用作提示词</button>
+        <button id="tx_copy">复制</button>
+      </div>
+    </details>
+
+    <label>参考图（可选 · 图生图/编辑）</label>
+    <input type="file" id="refInput" accept="image/*" multiple style="display:none">
+    <div class="ref-strip" id="refStrip">
+      <button class="ref-add" id="refAdd" title="上传参考图">＋<br>参考图</button>
+    </div>
+    <div class="hint">上传后将以图生图方式生成；支持多张（apimart 最多 16 张，方舟 Seedream 4.0 支持多图）</div>
+
+    <label>尺寸预设</label>
+    <div class="presets" id="presets"></div>
+
+    <label>自定义宽 × 高</label>
+    <div class="row">
+      <input type="number" id="width" value="1024" min="1" step="any">
+      <input type="number" id="height" value="1024" min="1" step="any">
+    </div>
+    <div class="row" style="margin-top:8px">
+      <select id="unit">
+        <option value="px">单位：像素</option>
+        <option value="cm">单位：厘米（印刷）</option>
+      </select>
+      <select id="dpi" disabled>
+        <option value="300">300 DPI 精印</option>
+        <option value="150">150 DPI 海报</option>
+        <option value="100">100 DPI 大幅面</option>
+        <option value="72">72 DPI 远观</option>
+      </select>
+    </div>
+    <div class="hint" id="sizeInfo"></div>
+    <label style="margin-top:10px; display:flex; gap:8px; align-items:center; cursor:pointer; color:var(--muted); font-size:13px">
+      <input type="checkbox" id="strictCrop" checked style="width:auto; accent-color:var(--accent)">
+      严格按宽高比居中裁切结果（本地处理 · 免费）
+    </label>
+    <div class="ratio-box"><div class="ratio-preview" id="ratioPreview"></div></div>
+
+    <div class="row">
+      <div>
+        <label>生成数量</label>
+        <select id="count">
+          <option value="1">1 张</option>
+          <option value="2">2 张</option>
+          <option value="3">3 张</option>
+          <option value="4">4 张</option>
+        </select>
+      </div>
+      <div>
+        <label>分辨率</label>
+        <select id="resolution">
+          <option value="auto">自动</option>
+          <option value="1k">1K 快·省</option>
+          <option value="2k">2K</option>
+          <option value="4k">4K</option>
+        </select>
+      </div>
+      <div>
+        <label>水印</label>
+        <select id="watermark">
+          <option value="false">关闭</option>
+          <option value="true">开启</option>
+        </select>
+      </div>
+    </div>
+    <div class="hint">分辨率档位用于 APIMart（gpt-image-2 等）；「自动」按宽高换算。其他服务商直接用像素宽高。</div>
+
+    <details open>
+      <summary>模型与 API 设置</summary>
+      <label>服务商</label>
+      <select id="provider"></select>
+      <label>模型名称</label>
+      <select id="modelSel"></select>
+      <input type="text" id="model" placeholder="自定义模型名" style="margin-top:6px;display:none">
+      <label>API 地址</label>
+      <input type="text" id="apiUrl">
+      <label>API Key（仅存于本机浏览器）</label>
+      <input type="password" id="apiKey" placeholder="sk-...">
+      <div class="hint" id="providerHint"></div>
+    </details>
+
+    <button class="gen-btn" id="genBtn">✦ 生成图片</button>
+
+    <details>
+      <summary>✨ AI 放大 / 高清化（独立功能）</summary>
+      <label>上传要放大的图片</label>
+      <input type="file" id="upscaleInput" accept="image/*" style="display:none">
+      <div class="ref-strip" id="upscaleStrip">
+        <button class="ref-add" id="upscalePick">＋<br>选图</button>
+      </div>
+      <label>目标档位</label>
+      <select id="upscaleRes">
+        <option value="4k">4K（最高清晰度）</option>
+        <option value="2k">2K</option>
+      </select>
+      <button class="gen-btn" id="upscaleBtn" style="margin-top:14px">✨ 开始放大</button>
+      <div class="hint">网页版没有本地放大引擎，这里用当前生图模型做「AI 重绘」放大：调 API 重新作画提升分辨率，质感更强，但小字可能变形。严格保真、文字不变的本地 Real-ESRGAN 放大仅在本地版提供。</div>
+    </details>
+  </aside>
+
+  <main class="main">
+    <div class="status" id="status"></div>
+    <div class="gallery" id="gallery"></div>
+    <div class="empty" id="empty">
+      <div class="big">🎨</div>
+      填好提示词和 API Key，点击「生成图片」<br>
+      生成结果会显示在这里
+    </div>
+  </main>
+</div>
+<div class="lightbox" id="lightbox"><img id="lightboxImg" alt=""></div>
+
+<script src="../lib/poll.js"></script>
+<script>
+// ==================== 服务商配置 ====================
+// style: 请求体格式。openai = {model,prompt,size,n}; siliconflow = {model,prompt,image_size,batch_size}
+const PROVIDERS = {
+  ark: {
+    name: "火山方舟（豆包/即梦 图片 Seedream）",
+    url: "https://ark.cn-beijing.volces.com/api/v3/images/generations",
+    models: ["doubao-seedream-4-0-250828", "doubao-seedream-3-0-t2i-250415", "doubao-seededit-3-0-i2i-250628"],
+    style: "openai",
+    supportsWatermark: true,
+    hint: "在 <a href='https://console.volcengine.com/ark' target='_blank'>火山方舟控制台</a> 开通图片模型并创建 API Key。即梦图片2.x/Seedream 系列都走这个接口，支持任意自定义尺寸（512-4096）。"
+  },
+  apimart: {
+    name: "APIMart 聚合（GPT Image 2.5 等）",
+    url: "https://api.apimart.ai/v1/images/generations",
+    models: ["gpt-image-2.5-flare", "gpt-image-2.5-sunburst", "gpt-image-2.5", "gpt-image-2.5-ext", "gpt-image-2", "gpt-image-2-ext", "gpt-image-1", "flux-2", "nano-banana-2"],
+    style: "apimart",
+    supportsWatermark: false,
+    hint: "异步任务接口：提交后自动轮询结果，通常几秒到一分钟。尺寸会自动换算成比例（如 16:9）+ 分辨率档位（1k/2k/4k）。参考图通过 image_urls 传入，最多 16 张。GPT Image 2.5：flare 出图快、sunburst 编辑更准。文档见 <a href='https://docs.apimart.ai' target='_blank'>docs.apimart.ai</a>。"
+  },
+  openai: {
+    name: "OpenAI",
+    url: "https://api.openai.com/v1/images/generations",
+    models: ["gpt-image-1", "dall-e-3"],
+    style: "openai",
+    supportsWatermark: false,
+    hint: "gpt-image-1 仅支持 1024x1024 / 1536x1024 / 1024x1536，会自动就近匹配。"
+  },
+  zhipu: {
+    name: "智谱 CogView",
+    url: "https://open.bigmodel.cn/api/paas/v4/images/generations",
+    models: ["cogview-4-250304", "cogview-4", "cogview-3-flash"],
+    style: "openai",
+    supportsWatermark: false,
+    hint: "在 <a href='https://open.bigmodel.cn' target='_blank'>智谱开放平台</a> 获取 Key。尺寸需为 16 的倍数，512-2048 之间。"
+  },
+  siliconflow: {
+    name: "SiliconFlow 硅基流动",
+    url: "https://api.siliconflow.cn/v1/images/generations",
+    models: ["Kwai-Kolors/Kolors", "black-forest-labs/FLUX.1-dev", "stabilityai/stable-diffusion-3-5-large"],
+    style: "siliconflow",
+    supportsWatermark: false,
+    hint: "在 <a href='https://siliconflow.cn' target='_blank'>siliconflow.cn</a> 获取 Key，部分模型免费。"
+  },
+  custom: {
+    name: "自定义（OpenAI 兼容接口）",
+    url: "",
+    models: [],
+    style: "openai",
+    supportsWatermark: false,
+    hint: "填入任意 OpenAI 兼容的 images/generations 接口地址。注意：新域名需要先加进 Cloudflare Worker 的 ALLOWED_API_HOSTS 白名单（web-version/worker.js）。"
+  }
+};
+
+const SIZE_PRESETS = [
+  { label: "1:1",  sub: "1024²",     w: 1024, h: 1024 },
+  { label: "4:3",  sub: "1152×864",  w: 1152, h: 864 },
+  { label: "3:4",  sub: "864×1152",  w: 864,  h: 1152 },
+  { label: "16:9", sub: "1280×720",  w: 1280, h: 720 },
+  { label: "9:16", sub: "720×1280",  w: 720,  h: 1280 },
+  { label: "3:2",  sub: "1248×832",  w: 1248, h: 832 },
+  { label: "2:3",  sub: "832×1248",  w: 832,  h: 1248 },
+  { label: "2K",   sub: "2048²",     w: 2048, h: 2048 },
+];
+
+const $ = id => document.getElementById(id);
+
+// ==================== 网页版：CORS 代理 + IndexedDB 历史（本地版走 server.py，网页版无后端）====================
+const WORKER_URL_KEY = "petvet_worker_url_v1";   // 与工作台共用的 CORS 代理地址（Cloudflare Worker）
+function workerBase() {
+  const u = (localStorage.getItem(WORKER_URL_KEY) || "").trim().replace(/\/+$/, "");
+  if (!u) throw new Error("还没配置「网页版 CORS 代理地址」。请到工作台「⚙️ 接口配置」页最上方填写你部署的 Cloudflare Worker 网址（形如 https://xxx.workers.dev）并保存。");
+  return u;
+}
+
+// 生成历史存 IndexedDB（原图以 dataUrl 存进 history 表，容量远大于 localStorage，刷新/关浏览器不丢）
+const AIDB = {
+  _db: null,
+  open() {
+    if (this._db) return Promise.resolve(this._db);
+    return new Promise((res, rej) => {
+      const r = indexedDB.open("petvet_aigen_db", 1);
+      r.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("history")) db.createObjectStore("history", { keyPath: "id" });
+      };
+      r.onsuccess = (e) => { this._db = e.target.result; res(this._db); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  async put(rec) {
+    const db = await this.open();
+    return new Promise((res, rej) => { const tx = db.transaction("history", "readwrite"); tx.objectStore("history").put(rec); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
+  },
+  async getAll() {
+    const db = await this.open();
+    return new Promise((res) => { const tx = db.transaction("history", "readonly"); const req = tx.objectStore("history").getAll(); req.onsuccess = () => res(req.result || []); req.onerror = () => res([]); });
+  },
+  async delete(id) {
+    const db = await this.open();
+    return new Promise((res, rej) => { const tx = db.transaction("history", "readwrite"); tx.objectStore("history").delete(id); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
+  },
+};
+
+// ==================== 参考图上传 ====================
+let refImages = [];  // dataURL 数组
+
+function renderRefs() {
+  const strip = $("refStrip");
+  strip.querySelectorAll(".ref-thumb").forEach(el => el.remove());
+  refImages.forEach((dataUrl, i) => {
+    const box = document.createElement("div");
+    box.className = "ref-thumb";
+    const img = document.createElement("img");
+    img.src = dataUrl;
+    const rm = document.createElement("button");
+    rm.className = "rm";
+    rm.textContent = "×";
+    rm.onclick = () => { refImages.splice(i, 1); renderRefs(); };
+    box.append(img, rm);
+    strip.insertBefore(box, $("refAdd"));
+  });
+}
+
+$("refAdd").addEventListener("click", () => $("refInput").click());
+$("refInput").addEventListener("change", async e => {
+  for (const file of e.target.files) {
+    if (refImages.length >= 16) break;
+    refImages.push(await fileToDataUrl(file));
+  }
+  e.target.value = "";
+  renderRefs();
+});
+
+function fileToDataUrl(file, max = 2048) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      // 超过 max 像素的图先缩小，避免请求体过大
+      const img = new Image();
+      img.onload = () => {
+        if (img.width <= max && img.height <= max) return resolve(fr.result);
+        const scale = max / Math.max(img.width, img.height);
+        const cv = document.createElement("canvas");
+        cv.width = Math.round(img.width * scale);
+        cv.height = Math.round(img.height * scale);
+        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+        resolve(cv.toDataURL("image/png"));
+      };
+      img.onerror = () => resolve(fr.result);
+      img.src = fr.result;
+    };
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
+}
+
+// ==================== 初始化 ====================
+const providerSel = $("provider");
+for (const [key, p] of Object.entries(PROVIDERS)) {
+  providerSel.add(new Option(p.name, key));
+}
+
+const presetsEl = $("presets");
+SIZE_PRESETS.forEach((p, i) => {
+  const btn = document.createElement("button");
+  btn.className = "preset-btn";
+  btn.innerHTML = p.label + "<small>" + p.sub + "</small>";
+  btn.onclick = () => {
+    $("unit").value = "px";
+    $("width").value = p.w;
+    $("height").value = p.h;
+    updateRatio();
+    document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+  };
+  presetsEl.appendChild(btn);
+});
+
+const MODEL_MAX_PX = 4096;  // 主流模型（Seedream / gpt-image-2）单边输出上限
+
+// 当前设置换算成实际请求的像素尺寸；厘米模式按 DPI 换算，超上限时等比缩到 4096 以内
+function getPixelSize() {
+  let w = +$("width").value || 1, h = +$("height").value || 1;
+  if ($("unit").value === "cm") {
+    const dpi = +$("dpi").value;
+    w = Math.round(w / 2.54 * dpi);
+    h = Math.round(h / 2.54 * dpi);
+  }
+  const m = Math.max(w, h);
+  const scaled = m > MODEL_MAX_PX;
+  if (scaled) {
+    w = Math.round(w * MODEL_MAX_PX / m);
+    h = Math.round(h * MODEL_MAX_PX / m);
+  }
+  return { w, h, scaled };
+}
+
+function updateSizeInfo() {
+  const unit = $("unit").value;
+  $("dpi").disabled = unit !== "cm";
+  const info = $("sizeInfo");
+  const { w, h, scaled } = getPixelSize();
+  if (unit === "px") {
+    info.textContent = scaled ? "超出模型上限 4096px，将按 " + w + "×" + h + " 生成" : "";
+    return;
+  }
+  const cmW = +$("width").value || 0, cmH = +$("height").value || 0, dpi = +$("dpi").value;
+  const rawW = Math.round(cmW / 2.54 * dpi), rawH = Math.round(cmH / 2.54 * dpi);
+  let t = cmW + "×" + cmH + " cm @ " + dpi + " DPI ≈ " + rawW + "×" + rawH + " px";
+  if (scaled) {
+    const effDpi = Math.round(w / (cmW / 2.54));
+    t += "；超出模型上限 4096px，将按 " + w + "×" + h + " 生成，摊到成品上实际约 " + effDpi
+       + " DPI（大幅面印刷建议生成后用放大工具放大 2–4 倍再交印）";
+  }
+  info.textContent = t;
+}
+
+function updateRatio() {
+  const { w, h } = getPixelSize();
+  const max = 70, scale = max / Math.max(w, h);
+  const el = $("ratioPreview");
+  el.style.width = Math.max(12, w * scale) + "px";
+  el.style.height = Math.max(12, h * scale) + "px";
+  document.querySelectorAll(".preset-btn").forEach((b, i) => {
+    b.classList.toggle("active", $("unit").value === "px"
+      && SIZE_PRESETS[i].w === +$("width").value && SIZE_PRESETS[i].h === +$("height").value);
+  });
+  updateSizeInfo();
+}
+$("width").addEventListener("input", updateRatio);
+$("height").addEventListener("input", updateRatio);
+$("unit").addEventListener("change", updateRatio);
+$("dpi").addEventListener("change", updateRatio);
+
+function applyProvider(key, keepUserValues) {
+  const p = PROVIDERS[key];
+  if (!keepUserValues) {
+    $("apiUrl").value = p.url;
+    $("model").value = p.models[0] || "";
+  }
+  bindModelSelect("modelSel", "model", p.models);
+  $("providerHint").innerHTML = p.hint;
+  $("watermark").disabled = !p.supportsWatermark;
+  $("resolution").disabled = p.style !== "apimart";
+}
+providerSel.addEventListener("change", () => { applyProvider(providerSel.value, false); saveConfig(); });
+
+// 模型下拉：选中项写回隐藏的输入框（其余代码仍读输入框的值）
+function bindModelSelect(selId, inputId, models) {
+  const sel = $(selId), inp = $(inputId);
+  const cur = inp.value.trim();
+  sel.innerHTML = models.map((m) => `<option value="${m}">${m}</option>`).join("") + `<option value="__custom__">自定义…</option>`;
+  const known = models.indexOf(cur) >= 0;
+  sel.value = cur && !known ? "__custom__" : (cur || models[0] || "__custom__");
+  if (!cur && models[0]) inp.value = models[0];
+  inp.style.display = sel.value === "__custom__" ? "block" : "none";
+  if (!sel._bound) {
+    sel._bound = true;
+    sel.addEventListener("change", () => {
+      const custom = sel.value === "__custom__";
+      inp.style.display = custom ? "block" : "none";
+      if (custom) { inp.focus(); } else { inp.value = sel.value; }
+      saveConfig();
+    });
+    inp.addEventListener("input", saveConfig);
+  }
+}
+
+// ==================== 皮肤 ====================
+(function initSkin() {
+  const sel = $("skin");
+  const cur = localStorage.getItem("aiimg_skin") || "dark";
+  sel.value = cur; document.body.dataset.skin = cur;
+  sel.addEventListener("change", () => {
+    document.body.dataset.skin = sel.value;
+    localStorage.setItem("aiimg_skin", sel.value);
+  });
+  // 嵌在工作台里时跟着工作台的皮肤走
+  window.addEventListener("message", (e) => {
+    if (e.origin !== location.origin || !e.data || e.data.type !== "skin") return;
+    sel.value = e.data.skin; document.body.dataset.skin = e.data.skin;
+  });
+})();
+
+// ==================== 文案 / 提示词助手 ====================
+// 写图的提示词好坏直接决定出图效果，这里用文字模型先把想法写成完整提示词
+const TEXT_PROVIDERS = {
+  apimart: { name: "APIMart 聚合（Claude / GPT / Gemini）", url: "https://api.apimart.ai/v1/chat/completions",
+    models: ["claude-opus-4-8", "gpt-5.1", "gemini-3-pro-preview", "deepseek-v4-pro"],
+    hint: "写文案最强的几个海外模型都在这里，可与生图共用同一个 APIMart Key。" },
+  deepseek: { name: "DeepSeek", url: "https://api.deepseek.com/v1/chat/completions",
+    models: ["deepseek-flash", "deepseek-v4-pro"],
+    hint: "中文写作扎实、价格低。Key 在 <a href='https://platform.deepseek.com' target='_blank'>platform.deepseek.com</a> 获取。" },
+  zhipu: { name: "智谱 GLM", url: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    models: ["glm-5.3-flash", "glm-5.3", "glm-5.2"],
+    hint: "国内直连快，Flash 版免费。Key 在 <a href='https://open.bigmodel.cn' target='_blank'>open.bigmodel.cn</a> 获取。" },
+  ark: { name: "豆包（火山方舟）", url: "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    models: ["doubao-seed-1.6-flash", "doubao-seed-1.6"],
+    hint: "中文营销文案自然、便宜，和上面的即梦生图共用方舟 Key。" },
+  qwen: { name: "通义千问（阿里百炼）", url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    models: ["qwen-plus", "qwen-flash"],
+    hint: "Key 在 <a href='https://bailian.console.aliyun.com' target='_blank'>阿里云百炼</a> 获取，新用户有免费额度。" },
+};
+const TEXT_TASKS = {
+  prompt_cn: "你是 AI 绘画提示词专家。把用户给的想法扩写成一段【中文】生图提示词：说清画面主体、场景、构图、光线、色调、材质与画风，具体可画，200 字以内。只输出提示词本身，不要解释、不要分点、不要加引号。",
+  prompt_en: "You are an expert AI image prompt engineer. Turn the user's idea into ONE English image-generation prompt: subject, scene, composition, lighting, color palette, materials, art style, camera/lens if relevant. Under 120 words. Output only the prompt, no explanation.",
+  polish: "你是中文文案编辑。把用户给的文字润色扩写得更具体生动，保持原意和事实，不要编造不存在的信息。只输出改好的文字。",
+  short: "你是广告文案。把用户给的内容提炼成简短有力的标题或卖点，每行一条，每条不超过 12 个字，最多 6 条。只输出这些文字，不要编号、不要解释。",
+  rednote: "你是小红书运营。把用户给的内容写成一篇小红书风格文案：一个抓人的标题 + 3~5 小段正文 + 结尾几个话题标签，口语化、有代入感，不夸大疗效、不做医疗承诺。只输出文案。",
+  custom: "",
+};
+const txProv = $("tx_provider");
+Object.keys(TEXT_PROVIDERS).forEach((k) => {
+  const o = document.createElement("option"); o.value = k; o.textContent = TEXT_PROVIDERS[k].name; txProv.appendChild(o);
+});
+function applyTextProvider(k, keepModel) {
+  const p = TEXT_PROVIDERS[k]; if (!p) return;
+  if (!keepModel) $("tx_model").value = p.models[0] || "";
+  bindModelSelect("tx_model_sel", "tx_model", p.models);
+  $("tx_hint").innerHTML = p.hint;
+}
+txProv.addEventListener("change", () => { applyTextProvider(txProv.value, false); saveConfig(); });
+$("tx_task").addEventListener("change", () => { $("tx_custom").style.display = $("tx_task").value === "custom" ? "block" : "none"; });
+$("tx_run").addEventListener("click", async () => {
+  const p = TEXT_PROVIDERS[txProv.value];
+  const key = $("tx_key").value.trim();
+  const text = ($("tx_in").value.trim() || $("prompt").value.trim());
+  if (!key) { alert("请先填写文案模型的 API Key。"); return; }
+  if (!text) { alert("请先写上要处理的文字（或在上面的提示词里写点内容）。"); return; }
+  const task = $("tx_task").value;
+  const sys = task === "custom" ? ($("tx_custom").value.trim() || "按用户要求处理文字，只输出结果。") : TEXT_TASKS[task];
+  const btn = $("tx_run"); const old = btn.textContent;
+  btn.disabled = true; btn.textContent = "生成中…";
+  try {
+    const d = await callApi({ url: p.url, apiKey: key, body: {
+      model: $("tx_model").value.trim() || p.models[0], stream: false,
+      messages: [{ role: "system", content: sys }, { role: "user", content: text }],
+    } });
+    let out = ((d.choices || (d.data && d.data.choices) || [])[0] || {}).message;
+    out = out ? out.content : "";
+    if (Array.isArray(out)) out = out.map((x) => x.text || "").join("");
+    if (!out) throw new Error("模型没有返回文字：" + JSON.stringify(d).slice(0, 200));
+    $("tx_out").value = String(out).trim();
+  } catch (e) {
+    $("tx_out").value = "生成失败：" + e.message;
+  } finally { btn.disabled = false; btn.textContent = old; }
+});
+$("tx_use").addEventListener("click", () => {
+  const v = $("tx_out").value.trim(); if (!v) return;
+  $("prompt").value = v; $("prompt").scrollIntoView({ block: "center" });
+});
+$("tx_copy").addEventListener("click", async () => {
+  const v = $("tx_out").value; if (!v) return;
+  try { await navigator.clipboard.writeText(v); $("tx_copy").textContent = "已复制 ✓"; setTimeout(() => ($("tx_copy").textContent = "复制"), 1200); } catch (e) { alert("复制失败，请手动选中复制。"); }
+});
+
+// ==================== 配置持久化（localStorage）====================
+function saveConfig() {
+  localStorage.setItem("aiimg_config", JSON.stringify({
+    provider: providerSel.value,
+    model: $("model").value,
+    apiUrl: $("apiUrl").value,
+    apiKey: $("apiKey").value,
+    width: $("width").value,
+    height: $("height").value,
+    resolution: $("resolution").value,
+    unit: $("unit").value,
+    dpi: $("dpi").value,
+    strictCrop: $("strictCrop").checked,
+    txProvider: txProv.value,
+    txModel: $("tx_model").value,
+    txKey: $("tx_key").value,
+  }));
+}
+["model", "apiUrl", "apiKey", "width", "height", "resolution", "unit", "dpi", "strictCrop", "tx_model", "tx_key"].forEach(id =>
+  $(id).addEventListener("change", saveConfig));
+
+(function loadConfig() {
+  let cfg = null;
+  try { cfg = JSON.parse(localStorage.getItem("aiimg_config")); } catch (e) {}
+  // 旧配置里用其他服务商填了 apimart 地址的，自动迁移到专用选项
+  if (cfg && cfg.apiUrl && cfg.apiUrl.includes("apimart.ai") && cfg.provider !== "apimart") {
+    cfg.provider = "apimart";
+    cfg.apiUrl = PROVIDERS.apimart.url;
+  }
+  if (cfg && TEXT_PROVIDERS[cfg.txProvider]) {
+    txProv.value = cfg.txProvider; applyTextProvider(cfg.txProvider, true);
+    $("tx_model").value = cfg.txModel || ""; $("tx_key").value = cfg.txKey || "";
+    bindModelSelect("tx_model_sel", "tx_model", TEXT_PROVIDERS[cfg.txProvider].models);
+  } else { applyTextProvider("apimart", false); }
+  if (cfg && PROVIDERS[cfg.provider]) {
+    providerSel.value = cfg.provider;
+    applyProvider(cfg.provider, true);
+    $("model").value = cfg.model || "";
+    bindModelSelect("modelSel", "model", PROVIDERS[cfg.provider].models);
+    $("apiUrl").value = cfg.apiUrl || "";
+    $("apiKey").value = cfg.apiKey || "";
+    if (cfg.width) $("width").value = cfg.width;
+    if (cfg.height) $("height").value = cfg.height;
+    if (cfg.resolution) $("resolution").value = cfg.resolution;
+    if (cfg.unit) $("unit").value = cfg.unit;
+    if (cfg.dpi) $("dpi").value = cfg.dpi;
+    if (typeof cfg.strictCrop === "boolean") $("strictCrop").checked = cfg.strictCrop;
+  } else {
+    applyProvider("ark", false);
+  }
+  updateRatio();
+})();
+
+// ==================== 生成 ====================
+// 限制同时在跑的请求数，免得一次几十个把接口打爆
+async function runPool(items, limit, fn) {
+  const out = new Array(items.length);
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) { const k = i++; out[k] = await fn(items[k], k); }
+  }));
+  return out;
+}
+
+async function generate() {
+  const batchRaw = ($("batch_prompts").value || "").trim();
+  const prompts = batchRaw ? batchRaw.split("\n").map((x) => x.trim()).filter(Boolean) : [$("prompt").value.trim()];
+  const prompt = prompts[0] || "";
+  const apiKey = $("apiKey").value.trim();
+  let apiUrl = $("apiUrl").value.trim();
+  // 只填了基础地址（如 https://xx.com/v1）时自动补全 images/generations 路径
+  if (apiUrl && !/\/(images\/generations|generations)\/?$/.test(apiUrl)) {
+    apiUrl = apiUrl.replace(/\/+$/, "") + "/images/generations";
+  }
+  const model = $("model").value.trim();
+  const { w, h } = getPixelSize();
+  const n = +$("count").value;
+  const status = $("status");
+
+  if (!prompt) { status.className = "status error"; status.textContent = "请先填写提示词"; return; }
+  if (!apiKey) { status.className = "status error"; status.textContent = "请填写 API Key"; return; }
+  if (!apiUrl) { status.className = "status error"; status.textContent = "请填写 API 地址"; return; }
+
+  const pKey = providerSel.value;
+  const style = PROVIDERS[pKey].style;
+  const size = w + "x" + h;
+
+  function buildReq(promptText) {
+  let body = null, multipart = null;
+  const prompt = promptText;
+  if (style === "apimart") {
+    // apimart：size 是比例，分辨率单独用 1k/2k/4k 档位
+    const resSel = $("resolution").value;
+    body = { model, prompt, n, size: nearestAspect(w, h),
+             resolution: resSel === "auto" ? pickResolution(w, h) : resSel };
+    if (refImages.length) body.image_urls = refImages;
+  } else if (style === "siliconflow") {
+    body = { model, prompt, image_size: size, batch_size: n };
+    if (refImages.length) body.image = refImages[0];
+  } else if (pKey === "openai" && refImages.length) {
+    // OpenAI 官方带参考图要走 images/edits（multipart 格式）
+    apiUrl = apiUrl.replace(/images\/generations\/?$/, "images/edits");
+    multipart = {
+      fields: { model, prompt, size, n },
+      files: refImages.map((d, i) => ({ field: "image[]", filename: "ref" + i + ".png", dataUrl: d })),
+    };
+  } else {
+    body = { model, prompt, size, n };
+    if (pKey === "ark") {
+      body.watermark = $("watermark").value === "true";
+      body.response_format = "url";
+      if (refImages.length) body.image = refImages.length === 1 ? refImages[0] : refImages;
+      // 方舟 seedream 一次一张，多张时前端并发
+      delete body.n;
+    } else if (refImages.length) {
+      body.image_urls = refImages;
+    }
+  }
+  return { body, multipart };
+  }
+
+  const btn = $("genBtn");
+  btn.disabled = true;
+  status.className = "status";
+  status.innerHTML = '<span class="spinner"></span>正在生成…';
+
+  const t0 = Date.now();
+  try {
+    // 一张图 = 一个任务：方舟不支持 n、apimart 对 n>1 不稳，统一拆成单张并行跑
+    const perPrompt = (pKey === "ark" || style === "apimart") ? n : 1;
+    const jobs = [];
+    prompts.forEach((pt) => { for (let k = 0; k < perPrompt; k++) jobs.push(pt); });
+    let done = 0;
+    const tick = () => { status.innerHTML = '<span class="spinner"></span>正在生成 ' + jobs.length + ' 个任务，已完成 ' + done + '…'; };
+    tick();
+    const packs = await runPool(jobs, 4, async (pt) => {
+      const { body: b, multipart: mp } = buildReq(pt);
+      const res = await callApi({ url: apiUrl, apiKey, body: perPrompt > 1 && style === "apimart" ? { ...b, n: 1 } : b, multipart: mp });
+      let us = extractImageUrls(res);
+      // 异步任务式接口（apimart 等）：先拿 task_id，再轮询结果
+      if (!us.length) {
+        const ids = findTaskIds(res);
+        if (ids.length) {
+          const origin = new URL(apiUrl).origin;
+          const polled = await Promise.all(ids.map((id) => pollTask(origin, apiKey, id)));
+          us = polled.flat();
+        }
+      }
+      if (!us.length) throw new Error("接口未返回图片: " + JSON.stringify(res).slice(0, 200));
+      done++; tick();
+      return us.map((u) => ({ u, pt }));
+    });
+    let items = packs.flat();
+    if (!items.length) throw new Error("接口未返回图片");
+
+    // 模型只支持固定比例档时，本地裁切到用户要求的精确比例
+    if ($("strictCrop").checked) {
+      status.innerHTML = '<span class="spinner"></span>正在按 ' + w + ":" + h + " 比例精确裁切…";
+      items = await Promise.all(items.map(async (it) => ({ pt: it.pt, u: await cropToRatio(it.u, w, h).catch(() => it.u) })));
+    }
+
+    status.innerHTML = '<span class="spinner"></span>正在保存到本地…';
+    for (const it of items) {
+      const flat = await flattenTransparent(it.u);
+      const saved = await persistResult(flat, it.pt, size, model);
+      addCard(saved ? saved.url : flat, it.pt, size, model, saved ? saved.record : null);
+    }
+    const secs = ((Date.now() - t0) / 1000).toFixed(1);
+    status.className = "status";
+    status.textContent = "✓ 生成完成，共 " + items.length + " 张（" + prompts.length + " 个提示词），耗时 " + secs + " 秒";
+  } catch (e) {
+    status.className = "status error";
+    status.textContent = "生成失败：" + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function callApi(payload) {
+  // 网页版：经 Cloudflare Worker /proxy 转发（raw 模式，直接给完整 URL + method + body/multipart）
+  const resp = await fetch(workerBase() + "/proxy", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      target: "raw",
+      apiKey: payload.apiKey,
+      url: payload.url,
+      method: payload.method || "POST",
+      payload: payload.body || null,
+      multipart: payload.multipart || null,
+    }),
+  });
+  const text = await resp.text();
+  let data; try { data = JSON.parse(text); } catch (e) { data = { _raw: text }; }
+  if (!resp.ok) {
+    const msg = (data.error && (data.error.message || data.error)) || data.message || text || ("HTTP " + resp.status);
+    throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+  }
+  return data;
+}
+
+// 从任意结构的响应里递归提取图片地址（兼容各家返回格式）
+function extractImageUrls(obj) {
+  const urls = [];
+  (function walk(v) {
+    if (!v) return;
+    if (typeof v === "string") {
+      if (/^https?:\/\//.test(v) || v.startsWith("data:image")) urls.push(v);
+    } else if (Array.isArray(v)) {
+      v.forEach(walk);
+    } else if (typeof v === "object") {
+      if (v.b64_json) urls.push("data:image/png;base64," + v.b64_json);
+      ["url", "urls", "image_url", "images", "data", "result", "output"].forEach(k => walk(v[k]));
+    }
+  })(obj);
+  // 排除被接口原样回显的参考图
+  return [...new Set(urls)].filter(u => !refImages.includes(u));
+}
+
+function findTaskIds(obj) {
+  const ids = [];
+  (function walk(v) {
+    if (!v || typeof v !== "object") return;
+    if (Array.isArray(v)) return v.forEach(walk);
+    if (v.task_id) ids.push(v.task_id);
+    ["data", "result", "output"].forEach(k => walk(v[k]));
+  })(obj);
+  return ids;
+}
+
+function findTaskStatus(obj) {
+  let st = null;
+  (function walk(v) {
+    if (!v || typeof v !== "object") return;
+    if (Array.isArray(v)) return v.forEach(walk);
+    if (typeof v.status === "string") st = v.status;
+    if (typeof v.state === "string") st = v.state;
+    ["data", "result", "output"].forEach(k => walk(v[k]));
+  })(obj);
+  return st;
+}
+
+// 等结果的策略（间隔、超时、网络抖动重试）在 ../lib/poll.js，和工作台共用；这里只管"怎么看各家的返回格式"
+async function pollTask(origin, apiKey, taskId) {
+  try {
+    return await waitForTask(
+      () => callApi({ url: origin + "/v1/tasks/" + taskId, apiKey, method: "GET" }),
+      (data) => {
+        const st = findTaskStatus(data);
+        if (st && /fail|error|cancel/i.test(st)) return { fail: "任务失败: " + JSON.stringify(data).slice(0, 300) };
+        // 关键：必须等任务状态为「完成」才取结果，否则多图任务可能只取到先生成好的那部分
+        if (st && /success|succeed|complet|done|finish/i.test(st)) return { done: extractImageUrls(data) };
+        // 接口没返回可识别的状态字段时，退化为「有图就算完成」
+        if (!st) { const urls = extractImageUrls(data); if (urls.length) return { done: urls }; }
+        return null;
+      });
+  } catch (e) {
+    if (e.kind === "fail") throw e;
+    throw new Error(e.message + "，任务 ID: " + taskId);
+  }
+}
+
+// 部分模型（gpt-image 等）会返回带透明通道的 PNG；检测到明显透明区域时铺白底，避免拿到"透明背景"的图
+async function flattenTransparent(url) {
+  try {
+    const dataUrl = await toDataUrl(url);
+    const img = await new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error("图片加载失败"));
+      im.src = dataUrl;
+    });
+    const cw = img.naturalWidth, ch = img.naturalHeight;
+    const cv = document.createElement("canvas");
+    cv.width = cw; cv.height = ch;
+    const cx = cv.getContext("2d");
+    cx.drawImage(img, 0, 0);
+    const d = cx.getImageData(0, 0, cw, ch).data;
+    let transparent = 0, samples = 0;
+    // 抽样检测透明像素（约 1/16 像素点），超过 2% 就判定为透明背景
+    for (let i = 3; i < d.length; i += 64) { samples++; if (d[i] < 16) transparent++; }
+    if (samples && transparent / samples > 0.02) {
+      const cv2 = document.createElement("canvas");
+      cv2.width = cw; cv2.height = ch;
+      const cx2 = cv2.getContext("2d");
+      cx2.fillStyle = "#ffffff";
+      cx2.fillRect(0, 0, cw, ch);
+      cx2.drawImage(img, 0, 0);
+      return cv2.toDataURL("image/png");
+    }
+    return dataUrl;   // 已拉成 dataUrl，直接复用，省得 persistResult 再下载一次
+  } catch (e) { return url; }
+}
+
+// 居中裁切到精确宽高比；比例已经足够接近（<1% 偏差）时原样返回
+async function cropToRatio(url, targetW, targetH) {
+  const dataUrl = await toDataUrl(url);
+  const img = await new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error("图片加载失败"));
+    im.src = dataUrl;
+  });
+  const target = targetW / targetH;
+  const cur = img.naturalWidth / img.naturalHeight;
+  if (Math.abs(cur - target) / target < 0.01) return dataUrl;   // 已拉成 dataUrl，直接复用
+  let cw = img.naturalWidth, ch = img.naturalHeight;
+  if (cur > target) cw = Math.round(ch * target);
+  else ch = Math.round(cw / target);
+  const cv = document.createElement("canvas");
+  cv.width = cw;
+  cv.height = ch;
+  cv.getContext("2d").drawImage(
+    img,
+    Math.round((img.naturalWidth - cw) / 2), Math.round((img.naturalHeight - ch) / 2), cw, ch,
+    0, 0, cw, ch);
+  return cv.toDataURL("image/png");
+}
+
+function nearestAspect(w, h) {
+  // gpt-image-2 支持的全部比例档（apimart 文档）
+  const ratios = {
+    "1:1": 1, "5:4": 1.25, "4:5": 0.8, "4:3": 4 / 3, "3:4": 3 / 4,
+    "3:2": 1.5, "2:3": 2 / 3, "16:9": 16 / 9, "9:16": 9 / 16,
+    "2:1": 2, "1:2": 0.5, "21:9": 21 / 9, "9:21": 9 / 21, "3:1": 3, "1:3": 1 / 3,
+  };
+  let best = "1:1", bd = Infinity;
+  for (const [k, v] of Object.entries(ratios)) {
+    const d = Math.abs(Math.log((w / h) / v));
+    if (d < bd) { bd = d; best = k; }
+  }
+  return best;
+}
+
+function pickResolution(w, h) {
+  const m = Math.max(w, h);
+  return m <= 1280 ? "1k" : m <= 2560 ? "2k" : "4k";
+}
+
+// 网页版：结果图在进图库前已统一转成 dataUrl（见 persistResult），这里原样返回即可
+function displaySrc(url) {
+  return url;
+}
+
+// 把结果图转成 dataUrl 存进 IndexedDB 并写入历史（刷新后可恢复；也避免远程链接过期）
+async function persistResult(u, prompt, size, model) {
+  try {
+    const dataUrl = await toDataUrl(u);   // 远程图经 Worker /download 拉回，dataUrl 原样用
+    const record = {
+      id: "ai_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      dataUrl, prompt, size, model, time: Date.now(),
+    };
+    await AIDB.put(record);
+    return { url: dataUrl, record };
+  } catch (e) {}
+  return null;
+}
+
+async function loadHistory() {
+  try {
+    const items = await AIDB.getAll();
+    items.sort((a, b) => (b.time || 0) - (a.time || 0));
+    for (const it of items.slice(0, 100)) {
+      addCard(it.dataUrl, it.prompt, it.size, it.model, it);
+    }
+  } catch (e) {}
+}
+loadHistory();
+
+function addCard(url, prompt, size, model, record) {
+  $("empty").style.display = "none";
+  const card = document.createElement("div");
+  card.className = "card";
+  const img = document.createElement("img");
+  const shown = displaySrc(url);
+  img.loading = "lazy"; img.decoding = "async";   // 历史图有几百 MB，滚到才加载（必须在设 src 之前）
+  // 先按尺寸占好位置：没加载的图高度为 0，会被当成"都在屏幕里"一次全加载，懒加载就失效了
+  const wh = String(size || "").match(/^(\d+)\s*[x×]\s*(\d+)$/);
+  if (wh) img.style.aspectRatio = wh[1] + " / " + wh[2];
+  img.addEventListener("load", () => { img.style.aspectRatio = ""; }, { once: true });
+  img.src = shown;
+  img.alt = "生成结果加载中…";
+  img.onerror = () => { img.alt = "图片加载失败，可点「下载」保存查看"; };
+  img.onclick = () => { $("lightboxImg").src = shown; $("lightbox").classList.add("show"); };
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  const pt = document.createElement("div");
+  pt.className = "prompt-text";
+  pt.textContent = prompt;
+  const info = document.createElement("div");
+  const t = record && record.time ? new Date(record.time) : new Date();
+  info.textContent = size + " · " + model + " · " + t.toLocaleDateString() + " " + t.toLocaleTimeString();
+  info.style.marginBottom = "8px";
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  const dl = document.createElement("button");
+  dl.textContent = "⬇ 下载";
+  dl.onclick = () => downloadImage(url, prompt);
+  const up = document.createElement("button");
+  up.textContent = "✨ 放大";
+  up.onclick = () => aiUpscale(url);
+  const cp = document.createElement("button");
+  cp.textContent = "⎘ 复制提示词";
+  cp.onclick = () => { navigator.clipboard.writeText(prompt); cp.textContent = "✓ 已复制"; setTimeout(() => cp.textContent = "⎘ 复制提示词", 1200); };
+  actions.append(dl, up, cp);
+  if (record && record.id) {
+    const del = document.createElement("button");
+    del.textContent = "🗑";
+    del.style.flex = "0 0 34px";
+    del.title = "删除这张图（本机存储一并删除）";
+    del.onclick = async () => {
+      if (!confirm("删除这张图？本机存储的历史记录也会一并删除。")) return;
+      try { await AIDB.delete(record.id); } catch (e) {}
+      card.remove();
+      if (!$("gallery").children.length) $("empty").style.display = "";
+    };
+    actions.append(del);
+  }
+  meta.append(pt, info, actions);
+  card.append(img, meta);
+  $("gallery").prepend(card);
+}
+
+async function downloadImage(url, prompt) {
+  const name = "ai_" + (prompt.slice(0, 20).replace(/[\\/:*?"<>|\s]/g, "_") || "image") + "_" + Date.now() + ".png";
+  let dataUrl = url;
+  if (!url.startsWith("data:")) {
+    try { dataUrl = await toDataUrl(url); } catch (e) { alert("下载失败：" + e.message); return; }
+  }
+  const a = document.createElement("a");
+  a.href = dataUrl;   // base64 直接下载，绕过跨域
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// ==================== AI 放大 / 高清化 ====================
+const UPSCALE_PROMPT = "高清放大这张图片：严格保持原图的内容、构图、色彩和所有文字完全一致，只提升分辨率、清晰度和细节质感，不要添加、删除或改动任何元素。";
+let upscaleSrc = null;
+
+$("upscalePick").addEventListener("click", () => $("upscaleInput").click());
+$("upscaleInput").addEventListener("change", async e => {
+  if (!e.target.files.length) return;
+  upscaleSrc = await fileToDataUrl(e.target.files[0], 4096);
+  e.target.value = "";
+  renderUpscalePreview();
+});
+
+function renderUpscalePreview() {
+  const strip = $("upscaleStrip");
+  strip.querySelectorAll(".ref-thumb").forEach(el => el.remove());
+  if (!upscaleSrc) return;
+  const box = document.createElement("div");
+  box.className = "ref-thumb";
+  const img = document.createElement("img");
+  img.src = upscaleSrc;
+  const rm = document.createElement("button");
+  rm.className = "rm";
+  rm.textContent = "×";
+  rm.onclick = () => { upscaleSrc = null; renderUpscalePreview(); };
+  box.append(img, rm);
+  strip.insertBefore(box, $("upscalePick"));
+}
+
+$("upscaleBtn").addEventListener("click", () => {
+  if (!upscaleSrc) {
+    const s = $("status");
+    s.className = "status error";
+    s.textContent = "请先在「AI 放大」面板里选择要放大的图片";
+    return;
+  }
+  aiUpscale(upscaleSrc);
+});
+
+// 远程图片经 Cloudflare Worker /download 转成 base64（避开跨域，也统一各服务商的传参方式）
+async function toDataUrl(src) {
+  if (src.startsWith("data:")) return src;
+  const resp = await fetch(workerBase() + "/download?url=" + encodeURIComponent(src));
+  const data = await resp.json().catch(() => null);
+  if (!resp.ok || !data || !data.dataUrl) throw new Error((data && data.error) || "下载图片失败");
+  return data.dataUrl;
+}
+
+async function aiUpscale(src) {
+  const apiKey = $("apiKey").value.trim();
+  let apiUrl = $("apiUrl").value.trim();
+  const model = $("model").value.trim();
+  const status = $("status");
+  if (!apiKey || !apiUrl) {
+    status.className = "status error";
+    status.textContent = "请先在「模型与 API 设置」里填好 API 地址和 Key";
+    return;
+  }
+  if (!/\/(images\/generations|generations)\/?$/.test(apiUrl)) {
+    apiUrl = apiUrl.replace(/\/+$/, "") + "/images/generations";
+  }
+  const pKey = providerSel.value, style = PROVIDERS[pKey].style;
+  const res = $("upscaleRes").value;
+  const maxPx = res === "2k" ? 2048 : 4096;
+  const btn = $("upscaleBtn");
+  btn.disabled = true;
+  status.className = "status";
+  status.innerHTML = '<span class="spinner"></span>正在准备图片…';
+  const t0 = Date.now();
+  try {
+    const dataUrl = await toDataUrl(src);
+    const dim = await new Promise(r => {
+      const im = new Image();
+      im.onload = () => r({ w: im.naturalWidth, h: im.naturalHeight });
+      im.onerror = () => r({ w: 1024, h: 1024 });
+      im.src = dataUrl;
+    });
+    const scale = Math.min(maxPx / Math.max(dim.w, dim.h), 4);
+    const tw = Math.round(dim.w * scale), th = Math.round(dim.h * scale);
+    const sizeLabel = style === "apimart" ? res.toUpperCase() : tw + "×" + th;
+
+    let body = null, multipart = null;
+    if (style === "apimart") {
+      body = { model, prompt: UPSCALE_PROMPT, n: 1, size: nearestAspect(dim.w, dim.h), resolution: res, image_urls: [dataUrl] };
+    } else if (style === "siliconflow") {
+      body = { model, prompt: UPSCALE_PROMPT, image_size: tw + "x" + th, batch_size: 1, image: dataUrl };
+    } else if (pKey === "openai") {
+      apiUrl = apiUrl.replace(/images\/generations\/?$/, "images/edits");
+      multipart = { fields: { model, prompt: UPSCALE_PROMPT, size: tw + "x" + th, n: 1 },
+                    files: [{ field: "image[]", filename: "up.png", dataUrl }] };
+    } else if (pKey === "ark") {
+      body = { model, prompt: UPSCALE_PROMPT, size: tw + "x" + th, image: dataUrl, watermark: false, response_format: "url" };
+    } else {
+      body = { model, prompt: UPSCALE_PROMPT, size: tw + "x" + th, n: 1, image_urls: [dataUrl] };
+    }
+
+    status.innerHTML = '<span class="spinner"></span>正在放大到 ' + sizeLabel + '…';
+    const result = await callApi({ url: apiUrl, apiKey, body, multipart });
+    let urls = extractImageUrls(result).filter(u => u !== dataUrl && u !== src);
+    if (!urls.length) {
+      const taskIds = findTaskIds(result);
+      if (taskIds.length) {
+        const origin = new URL(apiUrl).origin;
+        status.innerHTML = '<span class="spinner"></span>放大任务已提交，等待结果…';
+        const polled = await Promise.all(taskIds.map(id => pollTask(origin, apiKey, id)));
+        urls = polled.flat().filter(u => u !== dataUrl && u !== src);
+      }
+    }
+    if (!urls.length) throw new Error("接口未返回图片: " + JSON.stringify(result).slice(0, 300));
+    for (const u of urls) {
+      const saved = await persistResult(u, "✨ AI 放大结果", sizeLabel, model);
+      addCard(saved ? saved.url : u, "✨ AI 放大结果", sizeLabel, model, saved ? saved.record : null);
+    }
+    status.className = "status";
+    status.textContent = "✓ 放大完成，耗时 " + ((Date.now() - t0) / 1000).toFixed(1) + " 秒";
+  } catch (e) {
+    status.className = "status error";
+    status.textContent = "放大失败：" + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+$("genBtn").addEventListener("click", generate);
+$("prompt").addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") generate();
+});
+$("lightbox").addEventListener("click", () => $("lightbox").classList.remove("show"));
+</script>
+</body>
+</html>

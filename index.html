@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>宠物医院设计工作台</title>
+  <link rel="stylesheet" href="style.css?v=4" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">🐾 宠物医院设计工作台</div>
+    <div class="topbar-right">
+      <div class="current-hospital" id="current_hospital_tag">未选择医院</div>
+      <select id="skin_pick" class="skin-pick" title="换皮肤">
+        <option value="">青绿（默认）</option>
+        <option value="warm">暖杏</option>
+        <option value="slate">石墨蓝</option>
+        <option value="dark">午夜黑</option>
+        <option value="ocean">深海蓝</option>
+        <option value="plum">暗夜紫</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="app">
+    <!-- 左侧导航 -->
+    <nav class="sidenav">
+      <div class="nav-group">
+        <div class="nav-group-title">新美大视觉设计</div>
+        <div class="nav-group-sub">美团 · 大众点评店铺素材</div>
+        <button class="nav-item active" data-view="hospital"><span class="nav-step">1</span><span class="nav-txt">医院档案</span></button>
+        <button class="nav-item" data-view="material"><span class="nav-step">2</span><span class="nav-txt">医院素材库</span></button>
+        <button class="nav-item" data-view="profile"><span class="nav-step">3</span><span class="nav-txt">医院简介文案</span></button>
+        <button class="nav-item" data-view="generate"><span class="nav-step">4</span><span class="nav-txt">AI 图片生成</span></button>
+        <button class="nav-item" data-view="edit"><span class="nav-step">5</span><span class="nav-txt">图片编辑</span></button>
+        <button class="nav-item nav-item-sub" data-view="config">
+          <span class="nav-ico"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          <span class="nav-txt">接口配置<em>首次先配</em></span>
+        </button>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">独立工具</div>
+        <button class="nav-item" data-view="aigen">
+          <span class="nav-ico nav-ico-accent"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span>
+          <span class="nav-txt">AI 自由生图</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- 右侧内容 -->
+    <main class="content">
+
+      <!-- ===== 视图：医院档案 ===== -->
+      <section class="view active" id="view-hospital">
+        <h1 class="view-title">🏥 医院档案</h1>
+        <p class="view-desc">在这里创建/切换医院。每家医院的简介、文案、素材都各自独立保存。</p>
+
+        <div class="card">
+          <h2>新建医院</h2>
+          <label>医院名称</label>
+          <input id="new_h_name" type="text" placeholder="如：暖爪宠物医院" />
+          <label>联系手机号</label>
+          <input id="new_h_phone" type="text" placeholder="如：13800138000（仅本地保存，用于区分）" />
+          <button id="btn_add_hospital" class="btn btn-primary">＋ 创建医院</button>
+        </div>
+
+        <div class="card">
+          <h2>医院列表</h2>
+          <div id="hospital_list" class="hospital-list">（还没有医院，请先在上方创建）</div>
+        </div>
+      </section>
+
+      <!-- ===== 视图：素材库 ===== -->
+      <section class="view" id="view-material">
+        <h1 class="view-title">🎨 医院素材库</h1>
+        <p class="view-desc">上传品牌 LOGO 和背景图、设置品牌色，系统自动生成配色方案，供后续 AI 设计统一调用。</p>
+
+        <div id="material_need_hospital" class="notice">请先到「医院档案」创建并选择一家医院。</div>
+
+        <div id="material_main" style="display:none;">
+          <div class="card">
+            <h2>品牌 LOGO</h2>
+            <p class="hint">建议正方形（平台要求 500×500）。上传后自动压缩保存，并<b>自动从 LOGO 取色</b>生成主色 / 辅色。</p>
+            <div id="logo_preview" class="img-preview empty">未上传</div>
+            <div class="upload-row">
+              <label class="btn btn-test file-btn">选择 LOGO 图片<input type="file" id="logo_file" accept="image/*" hidden /></label>
+              <button id="logo_del" class="btn btn-danger btn-mini" style="display:none;">删除</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>品牌色与配色方案</h2>
+            <p class="hint">主色（及 LOGO 第二色）取自 LOGO 并锁定不变；<b>强调色 / 文字色 / 浅底色</b>提供 3 种风格，挑一个喜欢的。选定后每个色块仍可单独点开微调。</p>
+            <div class="color-pick-row">
+              <input type="color" id="brand_color" value="#1f8a8f" />
+              <input type="text" id="brand_hex" value="#1f8a8f" />
+              <button id="btn_gen_palette" class="btn btn-test btn-mini">按主色重算</button>
+            </div>
+            <div class="sub-label">① 选择配色风格</div>
+            <div id="palette_styles" class="style-options"></div>
+            <div class="sub-label">② 当前配色（可单独点开微调）</div>
+            <div id="palette" class="palette"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 视图：店铺简介与文案 ===== -->
+      <section class="view" id="view-profile">
+        <h1 class="view-title">📝 医院简介文案</h1>
+        <p class="view-desc">输入医院简介，用 DeepSeek 一键优化成美团平台风格文案，存入文案池供后续设计调用。</p>
+
+        <div id="profile_need_hospital" class="notice">请先到「医院档案」创建并选择一家医院。</div>
+
+        <div id="profile_main" style="display:none;">
+          <div class="card">
+            <h2>① 填写医院资料（按方面填，可只填部分）</h2>
+            <p class="hint">分方面填写，AI 会逐项润色，并生成一段综合简介。填得越全，后面做轮播图、团队图等素材越省事。内容随填随存。</p>
+            <div id="aspect_fields"></div>
+            <button id="btn_optimize" class="btn btn-primary">✨ AI 优化全部</button>
+          </div>
+
+          <div class="card">
+            <h2>② AI 优化结果</h2>
+            <div id="optimize_out" class="out">点击上方「AI 优化全部」后，这里逐项显示优化结果。</div>
+            <button id="btn_adopt" class="btn btn-test" style="display:none;">全部采纳 → 存入文案池</button>
+          </div>
+
+          <div class="card">
+            <h2>③ 文案池</h2>
+            <p class="hint">这里的文案后续做素材时可直接调用。可手动添加、编辑、删除。</p>
+            <div class="add-copy-row">
+              <input id="new_copy_text" type="text" placeholder="手动添加一条文案…" />
+              <button id="btn_add_copy" class="btn btn-test">＋ 添加</button>
+            </div>
+            <div id="copy_pool" class="copy-pool">（文案池为空）</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 视图：AI 生成 ===== -->
+      <section class="view" id="view-generate">
+        <h1 class="view-title">✨ AI图片生成</h1>
+        <p class="view-desc">选择素材类型，按你的品牌色、配色风格和文案，AI 自动生成带文字的设计图，存入素材库。</p>
+
+        <div id="generate_need_hospital" class="notice">请先到「医院档案」创建并选择一家医院。</div>
+
+        <div id="generate_main" class="gen-layout" style="display:none;">
+          <div class="gen-left">
+          <div class="card">
+            <h2>① 统一设置（所有素材共用，保证风格一致）</h2>
+            <div id="batch_palette_info" class="gen-info"></div>
+            <label>整体设计风格（可多选，多张时逐张轮换）</label>
+            <div id="design_style_chips" class="group-style-picker"></div>
+            <div id="style_rotate_tip" class="hint" style="margin:6px 0 0;"></div>
+            <input id="batch_design_custom" placeholder="自定义风格描述（可选）…" style="display:none; margin-top:8px;" />
+            <div id="design_ref_box" style="display:none; margin-top:8px;">
+              <div class="hint" style="margin:0 0 6px;">风格参考图：上传后，所有素材都会参考这些图的整体视觉风格来设计。</div>
+              <div id="design_refs" class="bv-refs"></div>
+            </div>
+            <label>团单配图·版式模板（可多选，选几个出几张；诊疗案例介绍图也按这里选的模板风格出图）</label>
+            <div id="group_tpl_chips" class="group-style-picker"></div>
+            <div id="tpl_tip" class="hint" style="margin:6px 0 0;"></div>
+            <label class="inline-check group-logo-opt"><input type="checkbox" class="opt-group-logo" /> <span>把本院 LOGO 和医院名称设计进团单图（融入画面，第⑤步套图会自动沿用）</span></label>
+            <label>LOGO 叠加</label>
+            <div class="logo-overlay-row">
+              <label class="inline-check"><input type="checkbox" id="batch_use_logo" checked /> <span>叠加真实 LOGO</span></label>
+              <select id="batch_logo_pos">
+                <option value="top-left">左上角（推荐）</option>
+                <option value="top-right">右上角（推荐）</option>
+                <option value="bottom-left">左下角</option>
+                <option value="bottom-right">右下角</option>
+                <option value="top-center">顶部居中</option>
+                <option value="bottom-center">底部居中</option>
+              </select>
+              <select id="batch_logo_size">
+                <option value="0.14">LOGO 小</option>
+                <option value="0.20" selected>LOGO 中</option>
+                <option value="0.28">LOGO 大</option>
+                <option value="0.36">LOGO 特大</option>
+              </select>
+            </div>
+            <label>统一补充要求（可选，应用到所有素材）</label>
+            <input id="batch_extra" type="text" placeholder="如：画面有橘猫、整体温馨治愈风…" />
+          </div>
+
+          <div class="card">
+            <h2>② 各素材的画面文字</h2>
+            <p class="hint">给每种素材设置要画进图里的文字（从文案池添加或手打，留空=纯视觉）。不勾选的本次不生成。文字随填随存。</p>
+            <div id="batch_list"></div>
+          </div>
+
+          <div class="card">
+            <h2>③ 一键生成</h2>
+            <button id="btn_batch_gen" class="btn btn-primary">🎨 生成全部勾选的素材</button>
+            <p class="hint" style="margin-top:10px;">按顺序逐张生成（每张约 20~60 秒），全部使用同一套品牌配色与风格。生成会产生相应费用。</p>
+            <div class="qa-hint" onclick="switchView('config')"></div>
+            <div id="batch_log" class="out" style="display:none;"></div>
+          </div>
+
+          </div><!-- /gen-left -->
+
+          <div class="gen-right">
+            <div class="card preview-card">
+              <h2>生成结果（全部）</h2>
+              <p class="hint">每张生成后自动显示在这里（最新在最上），可下载或删除。</p>
+              <div id="material_gallery" class="gallery-vert">（暂无）</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 视图：编辑 ===== -->
+      <section class="view" id="view-edit">
+        <h1 class="view-title">🖼️ 图片编辑</h1>
+        <p class="view-desc">批量套图：选一张满意的团单图当模板，一次生成同风格的一整套；也可以在画布上叠加真实可编辑的文字 / LOGO，存回素材库。</p>
+
+        <div id="edit_need_hospital" class="notice">请先到「医院档案」创建并选择一家医院。</div>
+
+        <div id="edit_main" style="display:none;">
+          <div id="edit_picker">
+          <div class="card" id="bf_card">
+            <h2>📋 批量套图</h2>
+            <p class="hint">选一张满意的团单图当<b>模板图</b>，工具会识别出它上面的每一处文字；你粘贴其余团单的文字，<b>排版完全跟着这张模板走</b>——新文字在原位置、用原样式替换，图形元素不变，宠物可按内容更换。</p>
+            <div class="sub-label" style="margin-top:4px;">① 选择模板图</div>
+            <div id="bf_tpls" class="bf-tpls">（加载中…）</div>
+            <div class="sub-label">② 模板上的文字位 <span class="hint" style="font-weight:400;">（自动识别；新文字按顺序替换「替换」的文字位，「保留」的原样不动。可以手动修改）</span></div>
+            <div id="bf_slots" class="bf-slots">（请先选择模板图）</div>
+            <div class="bf-cols">
+              <div class="bf-colL">
+                <div class="sub-label">③ 粘贴团单文字</div>
+                <div class="hint" style="margin-bottom:6px;">
+                  每行一个团单，文字之间用「｜」隔开（也可以每个团单之间空一行、一行一条）。<br>
+                  <b>不想排顺序？</b>随便写或粘贴团单描述，点「✨ 自动分配到文字位」，会按每处文字的角色和原来的字数自动放好、太长的自动精简。<br>
+                  自己写的话按上面「替换」文字位的顺序：第 1 条替换第 1 个文字位，依此类推；某一处不要了写「（删掉）」。
+                </div>
+                <div class="bf-xls">
+                  <label class="btn btn-test btn-mini">📄 上传 Excel / CSV<input id="bf_xls" type="file" accept=".xlsx,.csv,.xls" hidden></label>
+                  <span class="hint" id="bf_xls_msg">每一行一个团单，每个格子一段文字（按从左到右的顺序）；表头行、序号列会自动跳过</span>
+                </div>
+                <div class="bf-xls">
+                  <button id="bf_assign" class="btn btn-test btn-mini">✨ 自动分配到文字位</button>
+                  <span class="hint" id="bf_assign_msg">用 DeepSeek 写文案的模型，每次分配约几厘钱</span>
+                </div>
+                <textarea id="bf_text" rows="8" placeholder="狗狗专用｜犬四联1针｜卫佳伍｜单针免疫&#10;犬猫通用｜常规体检8项｜胸腔听诊｜腹部触诊"></textarea>
+              </div>
+              <div class="bf-colR">
+                <div class="sub-label">替换对照（生成前请核对）</div>
+                <div id="bf_preview" class="bf-preview">（还没有输入文字）</div>
+                <button id="bf_start" class="btn btn-primary" disabled>开始批量生成</button>
+              </div>
+            </div>
+            <div class="qa-hint" onclick="switchView('config')"></div>
+            <div id="bf_log" class="out" style="display:none;"></div>
+          </div>
+
+            <div class="card">
+              <h2>选择要编辑的素材</h2>
+              <p class="hint">点「编辑」打开画布加文字/LOGO；「复制」做多版；「下载/删除」管理单张。</p>
+              <div class="edit-row" style="margin-bottom:12px;">
+                <span>命名前缀</span><input id="exp_prefix" type="text" placeholder="可选" style="width:120px;" />
+                <span>后缀</span><input id="exp_suffix" type="text" placeholder="可选" style="width:120px;" />
+                <span class="hint" style="margin:0;">下载均为高清 PNG（上传用）</span>
+              </div>
+              <button id="edit_batch_download" class="btn btn-primary" style="width:auto; margin:0 0 12px;">📦 批量下载全部（按类型分文件夹）</button>
+              <div id="edit_gallery" class="gallery-vert">（暂无，请先到「AI 生成」生成素材）</div>
+            </div>
+          </div>
+
+          <div id="edit_editor" style="display:none;">
+            <div class="edit-toolbar">
+              <button id="ed_back" class="btn btn-test btn-mini">← 返回列表</button>
+              <button id="ed_undo" class="btn btn-test btn-mini">↶ 撤销</button>
+              <button id="ed_redo" class="btn btn-test btn-mini">↷ 重做</button>
+              <button id="ed_add_text" class="btn btn-test btn-mini">＋ 文字</button>
+              <button id="ed_add_box" class="btn btn-test btn-mini">＋ 方框</button>
+              <button id="ed_add_logo" class="btn btn-test btn-mini">＋ LOGO</button>
+              <label class="btn btn-test btn-mini" style="cursor:pointer;">⬆ 上传字体<input type="file" id="ed_upload_font" accept=".ttf,.otf,.woff,.woff2" hidden /></label>
+              <button id="ed_download" class="btn btn-test btn-mini">⬇ 下载</button>
+              <button id="ed_save_new" class="btn btn-primary btn-mini">💾 另存为新素材</button>
+              <button id="ed_save_over" class="btn btn-test btn-mini">覆盖原图</button>
+            </div>
+            <div class="edit-stage"><canvas id="ed_canvas"></canvas></div>
+            <div id="ed_props" class="edit-props" style="display:none;">
+              <div id="ed_textgroup">
+                <label>文字内容</label>
+                <input id="ed_text" type="text" placeholder="输入文字…" />
+                <div class="edit-row">
+                  <span>字体</span>
+                  <select id="ed_font">
+                    <option value='"PingFang SC","Microsoft YaHei",sans-serif'>系统黑体（苹方/雅黑）</option>
+                    <option value='"Songti SC","SimSun",serif'>系统宋体</option>
+                    <option value='"Kaiti SC","KaiTi",serif'>系统楷体</option>
+                    <option value="思源黑体">思源黑体（现代黑）</option>
+                    <option value="站酷庆科黄油体">站酷庆科黄油体（粗标题）</option>
+                    <option value="站酷快乐体">站酷快乐体（圆润活泼）</option>
+                    <option value="站酷小薇">站酷小薇（清秀）</option>
+                    <option value="马善政楷书">马善政楷书（毛笔）</option>
+                  </select>
+                  <label class="inline-check"><input type="checkbox" id="ed_bold" /> 加粗</label>
+                </div>
+                <div class="edit-row">
+                  <span>对齐</span>
+                  <button class="btn btn-test btn-mini ed-align" data-a="left">左</button>
+                  <button class="btn btn-test btn-mini ed-align" data-a="center">中</button>
+                  <button class="btn btn-test btn-mini ed-align" data-a="right">右</button>
+                </div>
+                <div class="edit-row">
+                  <span>字号</span><input id="ed_size" type="range" min="10" max="600" /><input id="ed_size_n" class="num" type="number" min="4" max="3000" />
+                  <span>颜色</span><input id="ed_color" type="color" />
+                </div>
+                <div class="edit-row">
+                  <span>字间距</span><input id="ed_charspace" type="range" min="0" max="1000" step="10" /><input id="ed_charspace_n" class="num" type="number" />
+                  <span>行间距</span><input id="ed_linespace" type="range" min="80" max="300" step="5" /><input id="ed_linespace_n" class="num" type="number" step="0.05" />
+                </div>
+                <div class="edit-row">
+                  <span>描边</span><input id="ed_tstrokec" type="color" value="#ffffff" /><input id="ed_tstrokew" class="num" type="number" min="0" max="60" placeholder="粗" />
+                  <label class="inline-check"><input type="checkbox" id="ed_shadow" /> 阴影</label>
+                </div>
+              </div>
+              <div id="ed_shapegroup" style="display:none;">
+                <div class="edit-row">
+                  <span>填充色</span><input id="ed_fill" type="color" />
+                  <span>描边色</span><input id="ed_strokec" type="color" />
+                  <span>边宽</span><input id="ed_strokew" type="range" min="0" max="40" /><input id="ed_strokew_n" class="num" type="number" />
+                </div>
+                <div class="edit-row">
+                  <span>圆角</span><input id="ed_radius" type="range" min="0" max="400" /><input id="ed_radius_n" class="num" type="number" />
+                  <span>不透明度</span><input id="ed_opacity" type="range" min="10" max="100" /><input id="ed_opacity_n" class="num" type="number" />
+                </div>
+              </div>
+              <div class="edit-row">
+                <button id="ed_front" class="btn btn-test btn-mini">置顶</button>
+                <button id="ed_back2" class="btn btn-test btn-mini">置底</button>
+                <button id="ed_del" class="btn btn-danger btn-mini">删除所选</button>
+              </div>
+            </div>
+            <p class="hint" style="margin-top:10px;">提示：双击文字可直接改字；拖动移动；角点缩放/旋转。做"色块底+文字"：先＋方框、设填充色，再＋文字、把方框"置底"。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 视图：接口配置 ===== -->
+      <!-- ===== 视图：AI 自由生图（原「AI 生图」工具整合） ===== -->
+      <section class="view" id="view-aigen">
+        <h1 class="view-title">🎨 AI 自由生图</h1>
+        <p class="view-desc">不限美团素材：任意提示词、自定义尺寸（含厘米印刷模式）、上传参考图、多家模型（火山方舟 / APIMart / OpenAI / 智谱 / 硅基流动），支持 AI 重绘放大。结果保存在本浏览器（IndexedDB）。</p>
+        <iframe id="aigen_frame" class="aigen-frame" title="AI 自由生图" data-src="aigen/index.html"></iframe>
+      </section>
+
+      <section class="view" id="view-config">
+        <h1 class="view-title">⚙️ 接口配置</h1>
+        <p class="view-desc">填写并保存 AI 接口。Key 仅保存在本浏览器，不写入文件。</p>
+
+        <div class="card">
+          <h2>网页版 CORS 代理（必填）</h2>
+          <label>CORS 代理地址（Cloudflare Worker）</label>
+          <input id="worker_url" type="text" placeholder="https://你的名字.workers.dev" />
+          <div class="hint">网页版没有本地后端，所有生图/文案/识图请求都要经过这个代理转发（绕过浏览器跨域限制）。填你部署的 Worker 网址，点下方「保存接口配置」后生效。Key 只经你自己的 Worker、不经过任何第三方。</div>
+        </div>
+
+        <div class="card">
+          <h2>DeepSeek 文案模型</h2>
+          <label>Base URL</label>
+          <input id="ds_base" type="text" value="https://api.deepseek.com/v1" />
+          <label>模型</label>
+          <input id="ds_model" type="text" value="deepseek-flash" />
+          <label>API Key</label>
+          <input id="ds_key" type="password" placeholder="sk-..." />
+        </div>
+
+        <div class="card">
+          <h2>图片模型（浏览器经本地代理）</h2>
+          <label>接口类型</label>
+          <select id="img_channel">
+            <option value="apimart">APIMart（默认 · 异步任务式，分辨率 1K/2K/4K）</option>
+            <option value="custom">自定义渠道（OpenAI images/generations 兼容 · 适配火山方舟 / 智谱 CogView / 硅基流动 / 通义万相等国产接口）</option>
+          </select>
+          <label>Base URL</label>
+          <input id="img_base" type="text" value="https://api.apimart.ai/v1" list="imgBaseList" />
+          <datalist id="imgBaseList"></datalist>
+          <label>模型</label>
+          <input id="img_model" type="text" value="gpt-image-2" list="imgModelList" />
+          <datalist id="imgModelList">
+            <option value="gpt-image-2.5-flare">GPT Image 2.5 Flare · 出图快</option>
+            <option value="gpt-image-2.5-sunburst">GPT Image 2.5 Sunburst · 编辑更准</option>
+            <option value="gpt-image-2">GPT Image 2</option>
+            <option value="gpt-image-2-ext">GPT Image 2 Ext</option>
+            <option value="nano-banana-2">Nano Banana 2</option>
+            <option value="flux-2">FLUX 2</option>
+            <option value="doubao-seedream-4-0-250828">豆包 Seedream 4.0（火山方舟）</option>
+            <option value="cogview-4-250304">智谱 CogView-4</option>
+            <option value="Kwai-Kolors/Kolors">可图 Kolors（硅基流动）</option>
+            <option value="wan2.2-t2i-flash">通义万相（阿里百炼）</option>
+          </datalist>
+          <label>分辨率</label>
+          <select id="img_quality">
+            <option value="1k">1K（默认 · 速度最快、费用最低）</option>
+            <option value="2k">2K（更清晰 · 费用中等）</option>
+            <option value="4k">4K（最清晰 · 费用最高）</option>
+          </select>
+          <label>API Key</label>
+          <input id="img_key" type="password" placeholder="sk-..." />
+          <div class="hint">选「自定义渠道」时：Base URL 填到版本号为止（如 https://ark.cn-beijing.volces.com/api/v3），保存后会记住，下次从输入框下拉直接选；画面比例按「分辨率」档位换算成像素尺寸（1K 长边 1024 / 2K 长边 1536 / 4K 长边 2048）传给 size 参数；参考图会放进 image 参数（是否支持看各家模型）；局部重绘仅 APIMart 支持。</div>
+        </div>
+
+        <div class="card">
+          <h2>识图模型（第⑤步识别模板文字 + 出图后自动检查）</h2>
+          <label>用哪家</label>
+          <select id="vs_provider">
+            <option value="auto">自动（按 智谱 → DeepSeek → APIMart 顺序，哪个填了 Key 用哪个，失败自动换下一家）</option>
+            <option value="zhipu">只用智谱</option>
+            <option value="deepseek">只用 DeepSeek（用上面「DeepSeek 文案模型」的 Key）</option>
+            <option value="apimart">只用 APIMart（用上面「图片模型」的 Key）</option>
+          </select>
+          <label>智谱 API Key（免费模型，在 open.bigmodel.cn 注册后获取）</label>
+          <input id="zp_key" type="password" placeholder="xxxxxxxx.xxxxxxxx" />
+          <label>智谱模型</label>
+          <input id="zp_model" type="text" value="glm-4.6v-flash" />
+          <label>DeepSeek 识图模型（和文案共用 DeepSeek 的 Key）</label>
+          <input id="ds_vs_model" type="text" value="deepseek-flash" />
+          <label>APIMart 识图模型</label>
+          <input id="vs_model" type="text" value="gemini-2.5-flash" />
+          <div class="hint">识别一张模板只调用一次，结果会记住：智谱免费，DeepSeek / APIMart 每张不到 1 分钱。</div>
+          <label>出图后自动检查</label>
+          <select id="qa_on">
+            <option value="1">开（推荐）：每张图出来后读一遍，核对文字、医院名、动物、有没有出界</option>
+            <option value="0">关</option>
+          </select>
+          <label>没通过时自动重出</label>
+          <select id="qa_retry">
+            <option value="1">最多 1 次（推荐）</option>
+            <option value="2">最多 2 次</option>
+            <option value="0">不重出，只在图上标出来</option>
+          </select>
+          <label>只是字写错时</label>
+          <select id="qa_fix">
+            <option value="1">先局部修改（推荐）：只重画出错的那一小块，整张构图保持不变</option>
+            <option value="0">不局部修改，按上面的设置整张重出</option>
+          </select>
+          <div class="hint">每检查一张用一次识图（智谱免费，其他家每张不到 1 分钱）；自动重出会再花一次生图的钱。<br>
+            缺字、模板旧字没换、医院名不对、多了动物、文字跑到会被裁掉的两侧，才算"没通过"并自动重出；疑似错字、空白、乱码只提醒你看一眼，不会自动重出。<br>
+            局部修改用 APIMart 的 GPT Image 2.5（编辑更准的 sunburst 型号），约一次生图的费用；修完会再检查，没变好就保留原来那版。<br>
+            这几项改了立即生效，不用点「保存接口配置」。</div>
+        </div>
+
+        <div class="card">
+          <button id="btn_save" class="btn btn-primary">保存接口配置</button>
+          <button id="btn_clear" class="btn btn-danger">清空本地 Key</button>
+          <div class="status-line" style="margin-top:14px;">
+            <span class="dot" id="proxy_dot"></span>
+            <span id="proxy_text">检测中…</span>
+          </div>
+        </div>
+
+        <div class="card test-card">
+          <h2>接口连通自检</h2>
+          <div class="test-block">
+            <button id="btn_netcheck" class="btn btn-test">⓪ 网络连通检测（不花钱，先点这个）</button>
+            <div class="hint" style="margin:6px 0 0;">只检查能否连上接口服务器，不消耗额度。生成图片报「连接上游接口失败」时先点它。</div>
+            <pre id="netcheck_out" class="out">点击后显示网络检测结果。</pre>
+          </div>
+          <div class="test-block">
+            <button id="btn_list_models" class="btn btn-test">查询可用模型（不花钱）</button>
+            <div class="hint" style="margin:6px 0 0;">列出你的 Key 能用的全部模型 ID，想换模型时照抄型号名填到上面「图片模型」即可。</div>
+            <pre id="models_out" class="out">点击后列出可用模型。</pre>
+          </div>
+          <div class="test-block">
+            <button id="btn_test_text" class="btn btn-test">① 测试文案接口（DeepSeek）</button>
+            <pre id="text_out" class="out">点击后显示 AI 文案。</pre>
+          </div>
+          <div class="test-block">
+            <button id="btn_test_image" class="btn btn-test">② 测试图片接口（gpt-image-2）</button>
+            <div id="image_out" class="out img-out">点击后显示 AI 测试图片。</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div id="lightbox" class="lightbox" style="display:none;">
+    <span class="lightbox-close">×</span>
+    <img id="lightbox_img" src="" alt="预览" />
+  </div>
+
+  <script src="lib/fabric.min.js"></script>
+  <script src="lib/jszip.min.js"></script>
+  <script src="lib/poll.js"></script>
+  <!-- 按功能拆开的脚本，顺序有讲究：后面的文件会用到前面文件里定义的东西；app.js（入口、页面初始化）必须最后 -->
+  <script src="js/core.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/images.js"></script>
+  <script src="js/catalog.js"></script>
+  <script src="js/prompt.js"></script>
+  <script src="js/vision.js"></script>
+  <script src="js/qa.js"></script>
+  <script src="js/fix.js"></script>
+  <script src="js/hospital.js"></script>
+  <script src="js/profile.js"></script>
+  <script src="js/material.js"></script>
+  <script src="js/generate.js"></script>
+  <script src="js/batchfill.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
